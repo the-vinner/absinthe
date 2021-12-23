@@ -47,6 +47,10 @@ defmodule Absinthe.Phase.Schema do
 
   defp update_context(input, nil), do: input
 
+  defp update_context(input, %{schema: mod}) when is_atom(mod) do
+    context = apply(mod, :context, [input.execution.context])
+    put_in(input.execution.context, context)
+  end
   defp update_context(input, schema) do
     context = schema.context(input.execution.context)
     put_in(input.execution.context, context)
@@ -239,6 +243,15 @@ defmodule Absinthe.Phase.Schema do
     fields
     |> Map.values()
     |> Enum.find(&match?(%{name: ^internal_name}, &1))
+  end
+
+
+  defp find_schema_field(%Type.Field{type: maybe_wrapped_type}, name, %{persistent_term_name: schema_name, schema: schema}, adapter) do
+    type =
+      {Type.unwrap(maybe_wrapped_type), schema_name}
+      |> schema.__absinthe_lookup__
+
+    find_schema_field(type, name, schema, adapter)
   end
 
   defp find_schema_field(%Type.Field{type: maybe_wrapped_type}, name, schema, adapter) do

@@ -110,6 +110,9 @@ defmodule Absinthe.Schema do
 
       @schema_provider Absinthe.Schema.Compiled
 
+      def __absinthe_lookup__({name, schema_name}) do
+        __absinthe_type__({name, schema_name})
+      end
       def __absinthe_lookup__(name) do
         __absinthe_type__(name)
       end
@@ -527,7 +530,31 @@ defmodule Absinthe.Schema do
     schema.__absinthe_directive__(name)
   end
 
-  def lookup_type(schema, type, options \\ [unwrap: true]) do
+  def lookup_type(args, type) do
+    lookup_type(args, type, [unwrap: true])
+  end
+  def lookup_type(%{schema: s, persistent_term_name: name} = args, type, options) do
+    cond do
+      is_atom(type) ->
+        apply(s, :__absinthe_lookup__, [{type, name}])
+
+      is_binary(type) ->
+        apply(s, :__absinthe_lookup__, [{type, name}])
+
+      Type.wrapped?(type) ->
+        if Keyword.get(options, :unwrap) do
+          lookup_type(args, type |> Type.unwrap())
+        else
+          type
+        end
+
+      true ->
+        type
+    end
+  end
+
+  @spec lookup_type(any, any, any) :: any
+  def lookup_type(schema, type, options) do
     cond do
       is_atom(type) ->
         schema.__absinthe_lookup__(type)

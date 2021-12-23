@@ -24,9 +24,14 @@ defmodule Absinthe.Phase.Document.Execution.Resolution do
     execution = perform_resolution(bp_root, operation, options)
 
     blueprint = %{bp_root | execution: execution}
+    schema =
+      case bp_root.schema do
+        %{schema: schema} -> schema
+        schema -> schema
+      end
 
     if Keyword.get(options, :plugin_callbacks, true) do
-      bp_root.schema.plugins()
+      schema.plugins()
       |> Absinthe.Plugin.pipeline(execution)
       |> case do
         [] ->
@@ -42,8 +47,12 @@ defmodule Absinthe.Phase.Document.Execution.Resolution do
 
   defp perform_resolution(bp_root, operation, options) do
     exec = Execution.get(bp_root, operation)
-
-    plugins = bp_root.schema.plugins()
+    schema =
+      case bp_root.schema do
+        %{schema: schema} -> schema
+        schema -> schema
+      end
+    plugins = schema.plugins()
     run_callbacks? = Keyword.get(options, :plugin_callbacks, true)
 
     exec = plugins |> run_callbacks(:before_resolution, exec, run_callbacks?)

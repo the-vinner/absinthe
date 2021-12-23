@@ -52,7 +52,7 @@ if Code.ensure_loaded?(:persistent_term) do
         __absinthe_reference__: metadata
       }
 
-      schema_name = opts[:schema] || raise "no schema name provided"
+      schema_name = opts[:persistent_term_name] || opts[:schema] || raise "no schema name provided"
 
       put_schema(schema_name, schema_content)
 
