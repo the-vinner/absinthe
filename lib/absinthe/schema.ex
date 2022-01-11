@@ -113,6 +113,7 @@ defmodule Absinthe.Schema do
       def __absinthe_lookup__({name, schema_name}) do
         __absinthe_type__({name, schema_name})
       end
+
       def __absinthe_lookup__(name) do
         __absinthe_type__(name)
       end
@@ -531,10 +532,12 @@ defmodule Absinthe.Schema do
   end
 
   def lookup_type(args, type) do
-    lookup_type(args, type, [unwrap: true])
+    lookup_type(args, type, unwrap: true)
   end
+
   def lookup_type(%{schema: s} = args, type, options) do
     persistent_term_name = Map.get(args, :persistent_term_name, s)
+
     cond do
       is_atom(type) ->
         apply(s, :__absinthe_lookup__, [{type, persistent_term_name}])

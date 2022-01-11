@@ -14,6 +14,7 @@ defmodule Absinthe.Schema.Notation.Experimental.DynamicGenTest do
           # AbsinBlueprint.put_flag(node, :auth, auth)
           IO.inspect(node, label: "auth test")
           node
+
         _, node ->
           node
       end
@@ -57,6 +58,9 @@ defmodule Absinthe.Schema.Notation.Experimental.DynamicGenTest do
     def __absinthe_type__({name, schema_name}) do
       @schema_provider.__absinthe_type__(schema_name, name)
     end
+    def __absinthe_type__(name) do
+      @schema_provider.__absinthe_type__(__MODULE__, name)
+    end
 
     def __absinthe_directive__(name, schema_name) do
       @schema_provider.__absinthe_directive__(schema_name, name)
@@ -82,16 +86,20 @@ defmodule Absinthe.Schema.Notation.Experimental.DynamicGenTest do
       @prototype_schema
     end
 
-
-    def hydrate(%Absinthe.Blueprint.Schema.FieldDefinition{identifier: :posts}, [%Absinthe.Blueprint.Schema.ObjectTypeDefinition{identifier: :query} | _]) do
+    def hydrate(%Absinthe.Blueprint.Schema.FieldDefinition{identifier: :posts}, [
+          %Absinthe.Blueprint.Schema.ObjectTypeDefinition{identifier: :query} | _
+        ]) do
       {:resolve, &__MODULE__.health/3}
     end
+
     def hydrate(_node, _ancestors), do: []
 
     # Resolver implementation:
     def health(a, b, c) do
       {:ok, %{id: "test"}}
     end
+
+    def persistent_term_name, do: __MODULE__
   end
 
   describe "Dynamic Runtime Schema" do
@@ -99,6 +107,7 @@ defmodule Absinthe.Schema.Notation.Experimental.DynamicGenTest do
       prototype_schema = Potion.SchemaPrototype
       blueprint = %Absinthe.Blueprint{schema: Potion.Schema}
       attrs = [blueprint]
+
       schema_def = %Absinthe.Blueprint.Schema.SchemaDefinition{
         imports: [],
         module: Potion.Schema,
@@ -121,47 +130,77 @@ defmodule Absinthe.Schema.Notation.Experimental.DynamicGenTest do
           Absinthe.Schema.Notation.build_reference(__ENV__),
           []
         )
+
       blueprint =
         attrs
         |> List.insert_at(1, schema_def)
         |> Kernel.++([{:sdl, definitions}, :close])
         |> Absinthe.Blueprint.Schema.build()
-      # |> IO.inspect(label: "hey")
-      # sdl_definitions =
-      #   definitions
-      #   |> List.flatten()
-      #   |> Enum.map(fn definition ->
-      #     Absinthe.Blueprint.prewalk(definition, fn
-      #       %{module: _} = node ->
-      #         %{node | module: Potion.Schema}
-
-      #       node ->
-      #         node
-      #     end)
-      #   end)
-
-      # schema =
-      #   schema
-      #   |> Map.update!(:type_definitions, &(sdl_definitions ++ &1))
-
-      # blueprint = %{blueprint | schema_definitions: [schema]}
 
       pipeline =
         Potion.Schema
-        |> Absinthe.Pipeline.for_schema(prototype_schema: prototype_schema, persistent_term_name: :testing)
+        |> Absinthe.Pipeline.for_schema(prototype_schema: prototype_schema)
         |> Absinthe.Schema.apply_modifiers(Potion.Schema)
 
       blueprint
       |> Absinthe.Pipeline.run(pipeline)
 
-      # tests pass, just need updates to:
-      # Update __absinthe_types__
-      # Update __absinthe_directive__
-      # Update __absinthe_directives__
-      # Update __absinthe_interface_implementors__
-      # schema args could be struct
-      #
-      # Seems to be only for utils and introspection
+      """
+      query posts {
+        posts {
+          id
+        }
+      }
+      """
+      |> Absinthe.run(Potion.Schema)
+      |> IO.inspect(label: "result")
+    end
+
+    test "dynamic gen custom name" do
+      prototype_schema = Potion.SchemaPrototype
+      blueprint = %Absinthe.Blueprint{schema: Potion.Schema}
+      attrs = [blueprint]
+
+      schema_def = %Absinthe.Blueprint.Schema.SchemaDefinition{
+        imports: [],
+        module: Potion.Schema,
+        __reference__: Absinthe.Schema.Notation.build_reference(__ENV__)
+      }
+
+      {:ok, definitions} =
+        Absinthe.Schema.Notation.SDL.parse(
+          """
+          type Query {
+            "A list of posts"
+            posts(reverse: Boolean): [Post] @auth(role: "test")
+          }
+          type Post {
+            id: String
+            title: String!
+          }
+          """,
+          Potion.Schema,
+          Absinthe.Schema.Notation.build_reference(__ENV__),
+          []
+        )
+
+      blueprint =
+        attrs
+        |> List.insert_at(1, schema_def)
+        |> Kernel.++([{:sdl, definitions}, :close])
+        |> Absinthe.Blueprint.Schema.build()
+
+
+      pipeline =
+        Potion.Schema
+        |> Absinthe.Pipeline.for_schema(
+          prototype_schema: prototype_schema,
+          persistent_term_name: :testing
+        )
+        |> Absinthe.Schema.apply_modifiers(Potion.Schema)
+
+      blueprint
+      |> Absinthe.Pipeline.run(pipeline)
 
       """
       query posts {
