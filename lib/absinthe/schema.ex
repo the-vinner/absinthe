@@ -533,13 +533,14 @@ defmodule Absinthe.Schema do
   def lookup_type(args, type) do
     lookup_type(args, type, [unwrap: true])
   end
-  def lookup_type(%{schema: s, persistent_term_name: name} = args, type, options) do
+  def lookup_type(%{schema: s} = args, type, options) do
+    persistent_term_name = Map.get(args, :persistent_term_name, s)
     cond do
       is_atom(type) ->
-        apply(s, :__absinthe_lookup__, [{type, name}])
+        apply(s, :__absinthe_lookup__, [{type, persistent_term_name}])
 
       is_binary(type) ->
-        apply(s, :__absinthe_lookup__, [{type, name}])
+        apply(s, :__absinthe_lookup__, [{type, persistent_term_name}])
 
       Type.wrapped?(type) ->
         if Keyword.get(options, :unwrap) do
