@@ -11,14 +11,15 @@ defmodule Absinthe.Schema.Notation.Experimental.DynamicGenTest do
 
       expand fn
         %{auth: auth}, node ->
-          Blueprint.put_flag(node, :auth, auth)
-          IO.inspect(node, label: "Fivering")
+          # AbsinBlueprint.put_flag(node, :auth, auth)
+          IO.inspect(node, label: "auth test")
           node
         _, node ->
           node
       end
     end
   end
+
   defmodule Potion.Schema do
     @prototype_schema Potion.SchemaPrototype
     @schema_provider Absinthe.Schema.PersistentTerm
@@ -89,8 +90,7 @@ defmodule Absinthe.Schema.Notation.Experimental.DynamicGenTest do
 
     # Resolver implementation:
     def health(a, b, c) do
-      # IO.inspect(c, label: "uhhhh")
-      {:ok, %{id: "niner"}}
+      {:ok, %{id: "test"}}
     end
   end
 
@@ -110,7 +110,7 @@ defmodule Absinthe.Schema.Notation.Experimental.DynamicGenTest do
           """
           type Query {
             "A list of posts"
-            posts(reverse: Boolean): [Post]
+            posts(reverse: Boolean): [Post] @auth(role: "test")
           }
           type Post {
             id: String
@@ -171,7 +171,7 @@ defmodule Absinthe.Schema.Notation.Experimental.DynamicGenTest do
       }
       """
       |> Absinthe.run(%{schema: Potion.Schema, persistent_term_name: :testing})
-      |> IO.inspect(label: "heya")
+      |> IO.inspect(label: "result")
     end
   end
 end
